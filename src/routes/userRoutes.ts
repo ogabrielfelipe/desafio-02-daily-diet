@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { createUser } from '../services/userService'
+import { createUser, getUserByNameAndEmail } from '../services/userService'
 import { z } from 'zod'
+import { userInterface } from '../@types/userInterfaces'
 
 export async function userRouter(app: FastifyInstance) {
   app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -11,9 +12,16 @@ export async function userRouter(app: FastifyInstance) {
 
     const userReq = createTransactionBodySchema.parse(request.body)
 
-    const userCreated = await createUser(userReq)
+    let userCreated: userInterface
 
-    reply.cookie('userId', userCreated[0].id, {
+    const getUser: userInterface = await getUserByNameAndEmail(userReq)
+    if (getUser) {
+      userCreated = getUser
+    } else {
+      userCreated = await createUser(userReq)
+    }
+
+    reply.cookie('userId', userCreated.id as string, {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 dias => Minutos * horas * dia * quantidade dias
     })
